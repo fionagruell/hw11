@@ -15,25 +15,39 @@ void init( cmplx* const psi0, const double alpha, const double lambda,
 void writeToFile(const cmplx* const v, const string s, const double dx,
          const int Nx, const double xmin, const double alpha,
          const double lambda, const double omega, const double t);
+
+void step(cmplx* const psi0, cmplx* const psi1,
+          const double dt, const double dx,
+          const double omega,const int Nx, const double xmin, double* v);
 //-----------------------------------
 int main(){
-
-	const int Nx = ;
-	const double xmin = ;
-  const double xmax = ;
-	const double Tend = ;
-	const double dx = ;
-	const double dt =   ;
+  
+	const int Nx =300 ;
+	const double xmin =-40 ;
+  const double xmax = 40;
+	const double Tend = 10.0*M_PI;
+	const double dx = (xmax-xmin)/(Nx-1);
+	const double dt =  0.1*dx ;
   double t = 0;
 	const int Na = 10;
 	int Nk = int(Tend / Na / dt + 0.5);
-
+	
 	const double lambda = 10;
   const double omega = 0.2;
+  const double k=omega*omega;
+  const double alpha=sqrt(omega);
+ 
 
   stringstream strm;
-
-	cmplx* psi0 = new cmplx[Nx];
+  
+  double* v[Nx];
+  for(int i=0; i<Nx; i++){
+		 double x = xmin + i * dx;
+		v[i]=k*x*x/2.;
+  }
+	cmplx* psi0 	= new cmplx[Nx];
+	cmplx* psi1 	= new cmplx[Nx];
+	cmplx* h 	= new cmplx[Nx]; //hilfsvektor
 
 	init(psi0, alpha, lambda, dx, dt, Nx, xmin);
 
@@ -43,7 +57,13 @@ int main(){
 
 	for (int i = 1; i <= Na; i++) {
 		for (int j = 1; j <= Nk-1; j++) {
+		  
 
+	step(psi0,psi1,dt,dx,omega,Nx,xmin,v);
+	h=psi0;
+	psi0=psi1;
+	psi1=h;
+		  
          t+=dt;
 		}
 		strm.str("");
@@ -51,10 +71,50 @@ int main(){
 		writeToFile(psi0,strm.str(), dx,Nx,xmin, alpha, lambda, omega,t);
 	}
   cout << "t = " << t << endl;
+  delete[] psi0;
+  delete[] psi1;
+  delete[] h;
 
 	return 0;
 }
 //-----------------------------------
+void step(cmplx* const psi0, cmplx* const psi1,
+          const double dt, const double dx,
+          const double omega, const int Nx,const double xmin, double* v)
+
+{
+  cmplx* d= new cmplx[Nx];
+  cmplx* a= new cmplx[Nx];
+  cmplx* acon= new cmplx[Nx];
+  cmplx* dcon= new cmplx[Nx];
+  
+
+  for(int i=0;i<Nx;i++) d[i] = 1.+cmplx(0.0,(dt/(2.*dx*dx)+(dt/2.0)*v[i]));
+  for(int i=0;i<Nx;i++) dcon[i] = conj(1.+cmplx(0.0,(dt/(2.*dx*dx)+(dt/2.0)*v[i])));
+  for(int i=0;i<Nx;i++) a[i] = cmplx(0.0,-dt/(4.0*dx*dx));
+  for(int i=0;i<Nx;i++) acon[i] = conj(cmplx(0.0,-dt/(4.0*dx*dx)));
+  
+    
+  for(int i=1;i<Nx;i++){
+     d[i]-=a[i]/d[i-1]*a[i-1];
+     dcon[i]-=acon[i]/dcon[i-1]*acon[i-1];
+     psi0[i]=acon[i]/dcon[i-1]*psi0[i-1];
+  }
+  
+   
+   psi1[Nx-1]=dcon[Nx-1]*psi0[Nx-1]/(d[Nx-1]);
+   for(int i=Nx-2;i>=0;i--){
+   psi1[i]=(dcon[i]*psi0[i]+acon[i+1]*psi0[i+1]-a[i+1]*psi1[i+1])/(d[i]);
+     
+   }
+   
+   delete[] a;
+   delete[] acon;
+   delete[] d;
+   delete[] dcon;
+//   cout <<l[N/2] << endl;
+
+}
 
 //-----------------------------------
 void writeToFile(const cmplx* const v, const string s, const double dx,
