@@ -18,7 +18,7 @@ void writeToFile(const cmplx* const v, const string s, const double dx,
 
 void step(cmplx* const psi0, cmplx* const psi1,
           const double dt, const double dx,
-          const double omega,const int Nx, const double xmin, double* v);
+          const double omega,const int Nx, const double xmin, cmplx*  v);
 //-----------------------------------
 int main(){
   
@@ -40,7 +40,7 @@ int main(){
 
   stringstream strm;
   
-  double* v[Nx];
+  cmplx* v= new cmplx[Nx];
   for(int i=0; i<Nx; i++){
 		 double x = xmin + i * dx;
 		v[i]=k*x*x/2.;
@@ -74,13 +74,14 @@ int main(){
   delete[] psi0;
   delete[] psi1;
   delete[] h;
+  delete[] v;
 
 	return 0;
 }
 //-----------------------------------
 void step(cmplx* const psi0, cmplx* const psi1,
           const double dt, const double dx,
-          const double omega, const int Nx,const double xmin, double* v)
+          const double omega, const int Nx,const double xmin, cmplx* v)
 
 {
   cmplx* d= new cmplx[Nx];
