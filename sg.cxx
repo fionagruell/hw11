@@ -18,33 +18,30 @@ void writeToFile(const cmplx* const v, const string s, const double dx,
 
 void step(cmplx* const psi0, cmplx* const psi1,
           const double dt, const double dx,
-          const double omega,const int Nx, const double xmin, cmplx*  v);
+          const double omega,const int Nx, const double xmin, const double k,double*v);
 //-----------------------------------
 int main(){
   
 	const int Nx =300 ;
-	const double xmin =-40 ;
-  const double xmax = 40;
+	const double xmin =-40. ;
+  const double xmax = 40.;
 	const double Tend = 10.0*M_PI;
 	const double dx = (xmax-xmin)/(Nx-1);
-	const double dt =  0.1*dx ;
+	const double dt =  1.*dx ;
   double t = 0;
 	const int Na = 10;
 	int Nk = int(Tend / Na / dt + 0.5);
+	double v[Nx];
 	
 	const double lambda = 10;
   const double omega = 0.2;
-  const double k=omega*omega;
-  const double alpha=sqrt(omega);
+  const double k =omega*omega;
+  const double alpha = sqrt(omega);
  
 
   stringstream strm;
   
-  cmplx* v= new cmplx[Nx];
-  for(int i=0; i<Nx; i++){
-		 double x = xmin + i * dx;
-		v[i]=k*x*x/2.;
-  }
+  
 	cmplx* psi0 	= new cmplx[Nx];
 	cmplx* psi1 	= new cmplx[Nx];
 	cmplx* h 	= new cmplx[Nx]; //hilfsvektor
@@ -59,7 +56,7 @@ int main(){
 		for (int j = 1; j <= Nk-1; j++) {
 		  
 
-	step(psi0,psi1,dt,dx,omega,Nx,xmin,v);
+	step(psi0,psi1,dt,dx,omega,Nx,xmin,k,v);
 	h=psi0;
 	psi0=psi1;
 	psi1=h;
@@ -74,46 +71,60 @@ int main(){
   delete[] psi0;
   delete[] psi1;
   delete[] h;
-  delete[] v;
+  
 
 	return 0;
 }
 //-----------------------------------
 void step(cmplx* const psi0, cmplx* const psi1,
           const double dt, const double dx,
-          const double omega, const int Nx,const double xmin, cmplx* v)
+          const double omega, const int Nx,const double xmin, const double k, double* v)
 
 {
   cmplx* d= new cmplx[Nx];
   cmplx* a= new cmplx[Nx];
   cmplx* acon= new cmplx[Nx];
   cmplx* dcon= new cmplx[Nx];
+  cmplx* aconu= new cmplx[Nx];
+  cmplx* acono= new cmplx[Nx];
+  
+
+double x;
+  for(int i=0; i<Nx; i++){
+		  x = xmin + i * dx;
+		 v[i]=k*x*x/2.;
+  }
+
   
 
   for(int i=0;i<Nx;i++) d[i] = 1.+cmplx(0.0,(dt/(2.*dx*dx)+(dt/2.0)*v[i]));
   for(int i=0;i<Nx;i++) dcon[i] = conj(1.+cmplx(0.0,(dt/(2.*dx*dx)+(dt/2.0)*v[i])));
   for(int i=0;i<Nx;i++) a[i] = cmplx(0.0,-dt/(4.0*dx*dx));
-  for(int i=0;i<Nx;i++) acon[i] = conj(cmplx(0.0,-dt/(4.0*dx*dx)));
+  for(int i=0;i<Nx;i++) aconu[i] = conj(cmplx(0.0,-dt/(4.0*dx*dx)));
+  for(int i=0;i<Nx;i++) acono[i] = conj(cmplx(0.0,-dt/(4.0*dx*dx)));
   
     
   for(int i=1;i<Nx;i++){
      d[i]-=a[i]/d[i-1]*a[i-1];
-     dcon[i]-=acon[i]/dcon[i-1]*acon[i-1];
-     psi0[i]=acon[i]/dcon[i-1]*psi0[i-1];
+     dcon[i]-=a[i]/d[i-1]*acon[i-1];
+     psi0[i]-=a[i]/d[i-1]*psi0[i-1];
+     aconu[i]-=a[i]/d[i-1]*aconu[i-1];
+     acono[i]-=a[i]/d[i-1]*acono[i-1];
   }
   
    
-   psi1[Nx-1]=dcon[Nx-1]*psi0[Nx-1]/(d[Nx-1]);
-   for(int i=Nx-2;i>=0;i--){
-   psi1[i]=(dcon[i]*psi0[i]+acon[i+1]*psi0[i+1]-a[i+1]*psi1[i+1])/(d[i]);
-     
+   psi1[Nx-1]=(dcon[Nx-1]*psi0[Nx-1]+aconu[Nx-1]*psi0[Nx-2])/(d[Nx-1]);
+   for(int i=Nx-2; i>=1;i--){
+   psi1[i]=(aconu[i-1]*psi0[i-1]+dcon[i]*psi0[i]+acono[i+1]*psi0[i+1]-a[i+1]*psi1[i+1])/(d[i]);
    }
+   psi1[0]=(dcon[0]*psi0[0]+acono[1]*psi0[1]-a[1]*psi1[1])/(d[0]);
    
    delete[] a;
    delete[] acon;
    delete[] d;
    delete[] dcon;
-//   cout <<l[N/2] << endl;
+   delete[] aconu;
+   delete[] acono;
 
 }
 
