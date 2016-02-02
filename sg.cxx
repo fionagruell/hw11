@@ -44,7 +44,7 @@ int main(){
   
 	cmplx* psi0 	= new cmplx[Nx];
 	cmplx* psi1 	= new cmplx[Nx];
-	cmplx* h 	= new cmplx[Nx]; //hilfsvektor
+	cmplx* h;// 	= new cmplx[Nx]; //hilfsvektor
 
 	init(psi0, alpha, lambda, dx, dt, Nx, xmin);
 
@@ -70,7 +70,7 @@ int main(){
   cout << "t = " << t << endl;
   delete[] psi0;
   delete[] psi1;
-  delete[] h;
+  //delete[] h;
   
 
 	return 0;
@@ -85,8 +85,7 @@ void step(cmplx* const psi0, cmplx* const psi1,
   cmplx* a= new cmplx[Nx];
   cmplx* acon= new cmplx[Nx];
   cmplx* dcon= new cmplx[Nx];
-  cmplx* aconu= new cmplx[Nx];
-  cmplx* acono= new cmplx[Nx];
+  
   
 
 double x;
@@ -100,31 +99,34 @@ double x;
   for(int i=0;i<Nx;i++) d[i] = 1.+cmplx(0.0,(dt/(2.*dx*dx)+(dt/2.0)*v[i]));
   for(int i=0;i<Nx;i++) dcon[i] = conj(1.+cmplx(0.0,(dt/(2.*dx*dx)+(dt/2.0)*v[i])));
   for(int i=0;i<Nx;i++) a[i] = cmplx(0.0,-dt/(4.0*dx*dx));
-  for(int i=0;i<Nx;i++) aconu[i] = conj(cmplx(0.0,-dt/(4.0*dx*dx)));
-  for(int i=0;i<Nx;i++) acono[i] = conj(cmplx(0.0,-dt/(4.0*dx*dx)));
+  psi0[0]=dcon[0]*psi0[0]+acon[0]*psi0[1];
+  for(int i=1;i<Nx-1;i++) psi0[i] = acon[i]*psi0[i-1]+dcon[i]*psi0[i]+acon[i]*psi0[i+1];
+  psi0[Nx-1]=acon[Nx-1]*psi0[Nx-2]+dcon[Nx-1]*psi0[Nx-1];
   
     
   for(int i=1;i<Nx;i++){
      d[i]-=a[i]/d[i-1]*a[i-1];
      dcon[i]-=a[i]/d[i-1]*acon[i-1];
      psi0[i]-=a[i]/d[i-1]*psi0[i-1];
-     aconu[i]-=a[i]/d[i-1]*aconu[i-1];
-     acono[i]-=a[i]/d[i-1]*acono[i-1];
+ for(int i=0;i<Nx;i++)
+ {
+   psi0[i]/=d[i];
+   a[i]/=d[i];
+ }
+     
   }
   
    
-   psi1[Nx-1]=(dcon[Nx-1]*psi0[Nx-1]+aconu[Nx-1]*psi0[Nx-2])/(d[Nx-1]);
-   for(int i=Nx-2; i>=1;i--){
-   psi1[i]=(aconu[i-1]*psi0[i-1]+dcon[i]*psi0[i]+acono[i+1]*psi0[i+1]-a[i+1]*psi1[i+1])/(d[i]);
+   psi1[Nx-1]=psi0[Nx-1];
+   for(int i=Nx-2; i>=0;i--){
+   psi1[i]=psi0[i]-a[i+1]*psi1[i+1];
    }
-   psi1[0]=(dcon[0]*psi0[0]+acono[1]*psi0[1]-a[1]*psi1[1])/(d[0]);
+   
    
    delete[] a;
    delete[] acon;
    delete[] d;
    delete[] dcon;
-   delete[] aconu;
-   delete[] acono;
 
 }
 
